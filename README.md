@@ -18,7 +18,7 @@ El repositorio es público e incluye `README.md`, `.gitignore` para Node y licen
 La implementación de la práctica DEPLOY agrega un inventario web en Python con almacenamiento en SQLite. Incluye alta de productos, consulta y validación del código comercial.
 
 - [Instrucciones de ejecución](docs/uso.md)
-- [Versiones publicadas](../../releases)
+- [Versiones publicadas](https://github.com/jesuuuuuussss/sistema-inventario/releases)
 - [Workflow de RELEASE](.github/workflows/release.yml)
 - [Workflow de DEPLOY](.github/workflows/deploy.yml)
 

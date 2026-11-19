@@ -63,12 +63,14 @@ class Inventario:
             SELECT p.id, p.codigo, p.nombre, p.precio_centavos, p.cantidad_disponible,
                    p.descripcion, c.nombre AS categoria
             FROM productos p JOIN categorias c ON c.id = p.categoria_id
-            WHERE p.activo = 1 AND (? = '' OR p.codigo = ?)
+            WHERE p.activo = 1 AND (? = '' OR p.codigo = ? OR instr(plegar(p.nombre), ?) > 0)
             ORDER BY p.codigo
         """
         codigo = " ".join(filtro.split()).upper()
         with closing(self.conectar()) as con:
-            return [dict(fila) for fila in con.execute(query, (codigo, codigo))]
+            con.create_function("plegar", 1, str.casefold, deterministic=True)
+            resultados = con.execute(query, (codigo, codigo, filtro.casefold()))
+            return [dict(fila) for fila in resultados]
 
     def registrar(self, datos):
         nombre = texto_obligatorio(datos, "nombre", 150, "El nombre")

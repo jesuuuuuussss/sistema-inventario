@@ -10,7 +10,7 @@ Extrae el ZIP de GitHub Releases. Desde la raíz extraída ejecuta:
 
     python3 src/main.py --db datos/inventario.sqlite3
 
-Abre http://127.0.0.1:8000. Registra un producto y consulta su código. Si el sistema se ejecuta en una máquina remota, establece un túnel con el usuario y puerto del servidor:
+Abre http://127.0.0.1:8000. Registra un producto y consulta su código o parte de su nombre. Si el sistema se ejecuta en una máquina remota, establece un túnel con el usuario y puerto del servidor:
 
     ssh -L 8000:127.0.0.1:8000 -p 22 usuario@servidor
 
@@ -21,7 +21,7 @@ El archivo SQLite es independiente del programa. Define su ruta con --db para co
 ## Funciones del módulo
 
 - Alta de productos con código único, precio en centavos MXN, cantidad entera y categoría.
-- Consulta del inventario y vista por código.
+- Consulta del inventario por código o nombre.
 - Persistencia en SQLite.
 
 ## RELEASE y DEPLOY
