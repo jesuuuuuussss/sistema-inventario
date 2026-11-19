@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Archivos locales del Sistema de Inventario
+__pycache__/
+/datos/
+/dist/

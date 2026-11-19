@@ -1,0 +1,47 @@
+:root {
+  color: #202c38;
+  background: #f1f5f8;
+  font: 16px/1.5 Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.contenedor { width: min(1240px, 100% - 48px); margin: 0 auto; }
+.cabecera { background: #142c46; color: white; }
+.encabezado { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 23px 0; }
+h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.1rem); letter-spacing: -.02em; }
+.version { border: 1px solid #7790a8; border-radius: 8px; padding: 5px 11px; white-space: nowrap; }
+main { padding: 30px 0 44px; }
+.paneles { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 23px; align-items: start; }
+.panel { background: white; border: 1px solid #d5dfe7; border-radius: 12px; padding: 24px; }
+h2 { font-size: 1.36rem; margin: 0 0 18px; }
+label { display: block; font-weight: 600; font-size: .91rem; margin-bottom: 14px; }
+input, select, button { font: inherit; border-radius: 7px; }
+input, select { width: 100%; margin-top: 4px; padding: 8px 10px; border: 1px solid #a9b9c8; background: white; color: #202c38; }
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #64b0ed; outline-offset: 2px; }
+button { background: #205b89; color: white; border: 0; padding: 9px 15px; font-weight: 600; cursor: pointer; }
+button:hover { background: #184c76; }
+.campos, .busqueda { display: flex; align-items: center; gap: 9px; }
+.campos > label { flex: 1 1 0; min-width: 0; }
+.buscar label { margin-bottom: 3px; }
+.busqueda input { margin-top: 0; }
+.enlace { color: #205b89; padding: 0 4px; }
+.tabla { overflow-x: auto; margin-top: 22px; }
+table { border-collapse: collapse; width: 100%; white-space: nowrap; font-size: .91rem; }
+th, td { padding: 11px 9px; border-bottom: 1px solid #d5dfe7; text-align: left; }
+th { background: #eaf0f5; color: #283d52; }
+.codigo { font-weight: 600; }
+.numero { font-variant-numeric: tabular-nums; }
+.vacio { color: #526579; }
+.aviso { border-radius: 8px; margin: 0 0 18px; padding: 10px 14px; }
+.confirmacion { background: #e8f5ed; color: #15583a; border: 1px solid #a7d3b7; }
+.error { background: #fff2ec; color: #942b13; border: 1px solid #edc0b2; }
+@media (max-width: 800px) {
+  .paneles { grid-template-columns: 1fr; }
+  .contenedor { width: calc(100% - 28px); }
+  .panel { padding: 18px; }
+}
+@media (max-width: 400px) {
+  .encabezado { align-items: start; flex-direction: column; }
+  .busqueda { gap: 6px; }
+  .busqueda button { padding: 9px 10px; }
+}

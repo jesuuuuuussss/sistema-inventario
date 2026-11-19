@@ -13,6 +13,15 @@ Este repositorio reúne las prácticas 1, 2 y 3 de GitHub Projects: organizació
 
 El repositorio es público e incluye `README.md`, `.gitignore` para Node y licencia MIT. La plantilla de exclusión prepara un posible desarrollo web; estas prácticas no incluyen una aplicación ejecutable.
 
+## Ejecución y despliegue del inventario
+
+La implementación de la práctica DEPLOY agrega un inventario web en Python con almacenamiento en SQLite. Incluye alta de productos, consulta y validación del código comercial.
+
+- [Instrucciones de ejecución](docs/uso.md)
+- [Versiones publicadas](../../releases)
+- [Workflow de RELEASE](.github/workflows/release.yml)
+- [Workflow de DEPLOY](.github/workflows/deploy.yml)
+
 ## Práctica 1 Tablero Kanban
 
 La vista **Board** está agrupada por **Status**, con las columnas en este orden:

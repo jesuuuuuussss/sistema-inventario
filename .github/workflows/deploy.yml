@@ -1,0 +1,143 @@
+name: Despliegue del Sistema de Inventario
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Etiqueta publicada en GitHub Releases
+        type: string
+        default: v1.0.0
+        required: true
+      anterior:
+        description: Etiqueta anterior para el ejercicio de recuperación (opcional)
+        type: string
+        default: ""
+      filtro:
+        description: Código o nombre para la prueba de consulta
+        type: string
+        default: PR7-001
+      destino:
+        description: Lugar donde preparar el paquete
+        type: choice
+        options: [vm, runner, servidor]
+        default: vm
+        required: true
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      anterior:
+        type: string
+        default: ""
+      filtro:
+        type: string
+        default: PR7-001
+      destino:
+        type: string
+        default: vm
+    secrets:
+      DEPLOY_HOST:
+        required: false
+      DEPLOY_USER:
+        required: false
+      DEPLOY_KEY:
+        required: false
+      DEPLOY_PORT:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Verificar y desplegar la versión
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      TAG: ${{ inputs.tag }}
+      ANTERIOR: ${{ inputs.anterior }}
+      FILTRO: ${{ inputs.filtro }}
+
+    steps:
+      - name: Obtener los comandos de despliegue
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Descargar de GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ -z "$ANTERIOR" || "$ANTERIOR" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$TAG" != "$ANTERIOR" ]]
+          [[ "$FILTRO" =~ ^[A-Za-z0-9-]+$ ]]
+
+          trabajo=$(mktemp -d "$RUNNER_TEMP/inventario.XXXXXXXX")
+          printf 'TRABAJO_DEPLOY=%s\n' "$trabajo" >> "$GITHUB_ENV"
+          for version in "$TAG" "$ANTERIOR"; do
+            [[ -n "$version" ]] || continue
+            archivo="sistema-inventario-$version.zip"
+            gh release view "$version" --repo "$GITHUB_REPOSITORY" \
+              --json tagName,publishedAt,url
+            gh release download "$version" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$archivo" --dir "$trabajo"
+            sha256sum "$trabajo/$archivo"
+          done
+
+      - name: Verificar manualmente el ZIP en el runner
+        run: |
+          paquete="$TRABAJO_DEPLOY/sistema-inventario-$TAG.zip"
+          python3 -m zipfile -t "$paquete"
+          python3 -m zipfile -e "$paquete" "$TRABAJO_DEPLOY/app"
+          [[ $(cat "$TRABAJO_DEPLOY/app/VERSION") == "$TAG" ]]
+          python3 --version
+          cat /etc/os-release | head -n 3
+          bash "$TRABAJO_DEPLOY/app/pruebas/comprobar.sh" \
+            "$TRABAJO_DEPLOY/app" "$TRABAJO_DEPLOY/prueba.sqlite3" registrar
+
+      - name: Preparar una VM Linux accesible por SSH
+        if: ${{ inputs.destino == 'vm' }}
+        run: bash scripts/preparar-vm.sh "$TRABAJO_DEPLOY/ssh"
+
+      - name: Configurar el acceso a un servidor existente
+        if: ${{ inputs.destino == 'servidor' }}
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+        run: bash scripts/configurar-ssh.sh "$TRABAJO_DEPLOY/ssh"
+
+      - name: Transferir el ZIP y extraer la versión remota
+        if: ${{ inputs.destino == 'vm' || inputs.destino == 'servidor' }}
+        run: |
+          if [[ -n "$ANTERIOR" ]]; then
+            bash scripts/desplegar-ssh.sh "$TRABAJO_DEPLOY/ssh/ssh_config" "$ANTERIOR" \
+              "$TRABAJO_DEPLOY/sistema-inventario-$ANTERIOR.zip"
+          fi
+          bash scripts/desplegar-ssh.sh "$TRABAJO_DEPLOY/ssh/ssh_config" "$TAG" \
+            "$TRABAJO_DEPLOY/sistema-inventario-$TAG.zip"
+
+      - name: Ejecutar el inventario y comprobar la recuperación
+        if: ${{ inputs.destino == 'vm' || inputs.destino == 'servidor' }}
+        run: |
+          bash scripts/verificar-remoto.sh "$TRABAJO_DEPLOY/ssh/ssh_config" \
+            "$TAG" "$ANTERIOR" "$FILTRO"
+          printf '### Pruebas completadas para %s\n\n' "$TAG" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "$ANTERIOR" ]]; then
+            printf 'Se confirmó el fallo controlado y se recuperó %s desde su ZIP.\n' \
+              "$ANTERIOR" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Detener la VM de práctica
+        if: ${{ always() && inputs.destino == 'vm' }}
+        run: |
+          if [[ -n "${TRABAJO_DEPLOY:-}" && -f "$TRABAJO_DEPLOY/ssh/qemu.pid" ]]; then
+            kill "$(cat "$TRABAJO_DEPLOY/ssh/qemu.pid")" 2>/dev/null || true
+          fi

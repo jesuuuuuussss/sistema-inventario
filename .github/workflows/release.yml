@@ -1,0 +1,86 @@
+name: RELEASE y DEPLOY del inventario
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-inventario-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Probar y publicar la versión
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.publicar.outputs.tag }}
+      anterior: ${{ steps.publicar.outputs.anterior }}
+      filtro: ${{ steps.publicar.outputs.filtro }}
+    steps:
+      - name: Obtener el código del commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Publicar el ZIP versionado
+        id: publicar
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(cat VERSION)
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          anterior=''
+          filtro=PR7-001
+          if [[ "$tag" == v1.1.0 ]]; then
+            anterior=v1.0.0
+            filtro=teclado
+          fi
+          printf 'tag=%s\nanterior=%s\nfiltro=%s\n' "$tag" "$anterior" "$filtro" >> "$GITHUB_OUTPUT"
+
+          temporal=$(mktemp -d "$RUNNER_TEMP/release.XXXXXXXX")
+          archivo="sistema-inventario-$tag.zip"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,isDraft,assets > "$temporal/release.json"; then
+            jq -e --arg archivo "$archivo" \
+              '(.isDraft | not) and any(.assets[]; .name == $archivo)' "$temporal/release.json"
+            jq -r .url "$temporal/release.json"
+            printf 'Se reutiliza el ZIP de la Release publicada %s.\n' "$tag"
+            exit 0
+          fi
+
+          git archive --format=zip --output="$temporal/$archivo" \
+            HEAD VERSION LICENSE src pruebas docs/uso.md
+          python3 -m zipfile -e "$temporal/$archivo" "$temporal/app"
+          bash "$temporal/app/pruebas/comprobar.sh" \
+            "$temporal/app" "$temporal/prueba.sqlite3" registrar
+          resumen=$(sha256sum "$temporal/$archivo")
+          printf '%s\n' "$resumen"
+          printf 'Paquete ejecutable del Sistema de Inventario %s.\n\nSHA-256: %s\n' \
+            "$tag" "${resumen%% *}" > "$temporal/notas.md"
+          if [[ "$tag" == v1.1.0 ]]; then
+            printf '\nEsta versión permite buscar productos por nombre además del código.\n' \
+              >> "$temporal/notas.md"
+          fi
+          gh release create "$tag" "$temporal/$archivo" --repo "$GITHUB_REPOSITORY" \
+            --title "Sistema de Inventario $tag" --notes-file "$temporal/notas.md" \
+            --target "$GITHUB_SHA"
+
+  desplegar:
+    name: Desplegar el ZIP publicado
+    needs: publicar
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      tag: ${{ needs.publicar.outputs.tag }}
+      anterior: ${{ needs.publicar.outputs.anterior }}
+      filtro: ${{ needs.publicar.outputs.filtro }}
+      destino: vm

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Inventario</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="contenedor encabezado">
+      <h1>Sistema de Inventario</h1>
+      <span class="version">Versión {version}</span>
+    </div>
+  </header>
+  <main class="contenedor">
+    {mensaje}
+    <div class="paneles">
+      <section class="panel" aria-labelledby="registrar">
+        <h2 id="registrar">Registrar producto</h2>
+        <form action="/productos" method="post">
+          <label>Nombre
+            <input name="nombre" maxlength="150" value="{nombre}" required>
+          </label>
+          <label>Código
+            <input name="codigo" maxlength="50" value="{codigo}" required>
+          </label>
+          <div class="campos">
+            <label>Precio en MXN
+              <input name="precio" inputmode="decimal" value="{precio}" required>
+            </label>
+            <label>Unidades
+              <input name="cantidad_disponible" type="number" min="0" step="1" value="{cantidad_disponible}" placeholder="0">
+            </label>
+          </div>
+          <label>Categoría
+            <select name="categoria" required>
+              <option value="">Selecciona una categoría</option>
+              {opciones}
+            </select>
+          </label>
+          <button>Registrar producto</button>
+        </form>
+      </section>
+      <section class="panel consulta" aria-labelledby="consultar">
+        <h2 id="consultar">Productos</h2>
+        <form class="buscar" action="/" method="get">
+          <label for="q">Consultar por código</label>
+          <div class="busqueda">
+            <input id="q" name="q" value="{consulta}" maxlength="150">
+            <button>Consultar</button>
+            <a class="enlace" href="/">Limpiar</a>
+          </div>
+        </form>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Unidades</th></tr></thead>
+            <tbody>{filas}</tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
